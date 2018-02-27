@@ -1,11 +1,21 @@
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.*;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 
-// student 118784412 should be a sophomore with 45 credits with a gpa of 2.891
-// student 143293833 should be sophomore with 30 credits with a gpa of 2.622
 public class JDBC_Students {
 	
-	public static void main(String[] args)
+	public static void main(String[] args) throws IOException
 	{
+		// Part A
+		String outputFile = "JDBC_StudentsOutput.txt";
+		File f = new File(outputFile);
+		PrintWriter out = new PrintWriter(new FileWriter(f)); 
+		DecimalFormat df = new DecimalFormat();
+		df.setMaximumFractionDigits(2);
 		try
 		{
 			Class.forName("com.mysql.jdbc.Driver");
@@ -28,26 +38,18 @@ public class JDBC_Students {
 			// update student records
 			// compute new GPAs and classifications (all classes are 3 credits)
 			
-			
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery("select s.StudentID, Classification, GPA, CreditHours, Grade" + " "
 					+ "from Student s inner join Enrollment e" + " "
 					+ "on s.studentID = e.StudentID" + " "
 					+ "order by StudentID");
-			
-//			select s.StudentID, Classification, GPA, CreditHours, Grade
-//			from Student s inner join Enrollment e
-//			on s.studentID = e.studentID
-//			order by StudentID;
 
-			
-			//StudentID, Classification, GPA, CreditHours, Grades
 			int id = 0;
 			int credits = 0;
 			double gpa = 0.0;
 			String classification = "";
 			int semesterCredits = 0;
-			int semesterGP = 0;
+			double semesterGP = 0;
 			PreparedStatement pstatement = conn.prepareStatement("Update Student" + " " 
 					+ "set CreditHours=?, GPA=?, Classification=?" + " "
 					+ "where StudentID=?");
@@ -75,14 +77,11 @@ public class JDBC_Students {
 						pstatement.setString(3, classification);
 						pstatement.setInt(4, id);
 						pstatement.executeUpdate();
-						
-						id = 0;
-						credits = 0;
-						gpa = 0.0;
-						classification = "";
-						semesterCredits = 0;
+						String outString = Integer.toString(id) + "\t" + df.format(gpa) +  "\t" + credits + "\t" + classification;
+						out.println(outString);
+						out.flush();
 						semesterGP = 0;
-						first = true;
+						semesterCredits = 0;
 					}
 					else
 					{
@@ -93,14 +92,71 @@ public class JDBC_Students {
 					id = newid;
 					credits = rs.getInt("CreditHours");
 					gpa = rs.getDouble("GPA");
-					classification = rs.getString("classification");
-					semesterGP += getGradeValue(rs.getString("Grade"));
+					classification = rs.getString("Classification").trim();
+					semesterGP += getGradeValue(rs.getString("Grade").trim());
 					semesterCredits += 3;
 				}
 				
 			}
+			out.close();
+			
+			// Part B
+			// get top 5 seniors
+			System.out.println("getting top 5");
+			statement = conn.createStatement();
+			rs = statement.executeQuery("select senior.Name as seniorName, mentor.Name as mentorName, GPA from Student s inner join Person as senior on s.StudentID = senior.ID inner join Person as mentor on mentor.ID = s.MentorID where s.Classification = 'Senior' order by GPA");
+			outputFile = "P3Output.txt";
+			f = new File(outputFile);
+			out = new PrintWriter(new FileWriter(f)); 
+			
+			System.out.println("made rs");
+			ArrayList<ArrayList<String>> info = new ArrayList<ArrayList<String>>();
+			double[] topGPAs = new double[5];
+			for(int i = 0; i < 5; i++)
+			{
+				topGPAs[i] = 0;
+				ArrayList<String> temp = new ArrayList<String>();
+				info.add(temp);
+			}
+			while(rs.next())
+			{
+				gpa = rs.getDouble("GPA");
+				String newInfo = rs.getString("seniorName") + "\t" + rs.getString("mentorName") + "\t" + df.format(gpa);
+				//highest gpa first
+				for(int i = 0; i < 5; i++)
+				{
+					if(gpa > topGPAs[i])
+					{
+						for(int j = 4; j > i; j--)
+						{
+							topGPAs[j] = topGPAs[j-1];
+							info.set(j, info.get(j-1));							
+						}
+						topGPAs[i] = gpa;
+						info.set(i, new ArrayList<String>());
+						info.get(i).add(newInfo);
+						i = 10;
+					}
+					else if(gpa == topGPAs[i])
+					{
+						info.get(i).add(newInfo);
+						i = 10;
+					}
+				}
+			}
+			
+			for(int i = 0; i < 5; i++)
+			{
+				for(String str : info.get(i))
+				{
+					System.out.println(str);
+					out.println(str);
+					out.flush();
+				}
+			}
 			
 			conn.close();
+			out.close();
 			System.out.println("Closed");
 		}
 		catch(Exception e)
