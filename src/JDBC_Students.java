@@ -50,7 +50,7 @@ public class JDBC_Students {
 			PreparedStatement pstatement = conn.prepareStatement("Update Student" + " " 
 					+ "set CreditHours=?, GPA=?, Classification=?" + " "
 					+ "where StudentID=?");
-			
+			boolean first = true;
 			while(rs.next())
 			{
 				int newid = rs.getInt("StudentID");
@@ -62,16 +62,23 @@ public class JDBC_Students {
 				}
 				else
 				{
-					// calculate new values
-					gpa = ((gpa * credits) + semesterGP) / (credits + semesterCredits);
-					credits += semesterCredits;
-					classification = getClassification(credits);
-					// update the last student
-					pstatement.setInt(1, credits);
-					pstatement.setDouble(2, gpa);
-					pstatement.setString(2, classification);
-					pstatement.setInt(4, id);
-					pstatement.executeUpdate();
+					if(!first)
+					{
+						// calculate new values
+						gpa = ((gpa * credits) + semesterGP) / (credits + semesterCredits);
+						credits += semesterCredits;
+						classification = getClassification(credits);
+						// update the last student
+						pstatement.setInt(1, credits);
+						pstatement.setDouble(2, gpa);
+						pstatement.setString(3, classification);
+						pstatement.setInt(4, id);
+						pstatement.executeUpdate();
+					}
+					else
+					{
+						first = false;
+					}
 					
 					// get information about the new student
 					id = newid;
