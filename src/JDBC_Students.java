@@ -1,6 +1,7 @@
 import java.sql.*;
 
-//student 118784412 should be a sophomore with 45 credits with a gpa of 2.9128889
+// student 118784412 should be a sophomore with 45 credits with a gpa of 2.891
+// student 143293833 should be sophomore with 30 credits with a gpa of 2.622
 public class JDBC_Students {
 	
 	public static void main(String[] args)
@@ -74,6 +75,14 @@ public class JDBC_Students {
 						pstatement.setString(3, classification);
 						pstatement.setInt(4, id);
 						pstatement.executeUpdate();
+						
+						id = 0;
+						credits = 0;
+						gpa = 0.0;
+						classification = "";
+						semesterCredits = 0;
+						semesterGP = 0;
+						first = true;
 					}
 					else
 					{
